@@ -47,18 +47,35 @@
       background: #1a1a1a;
       border: 1px solid #2a2a2a;
       border-radius: 12px;
-      padding: 1.75rem 1.5rem;
       text-decoration: none;
       color: inherit;
       transition: border-color 0.2s, transform 0.2s;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      overflow: hidden;
     }
 
     .game-card:hover {
       border-color: #555;
       transform: translateY(-3px);
+    }
+
+    .game-thumb {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: center;
+      background: #111;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .game-card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1.25rem 1.25rem 1.1rem;
+      min-height: 100%;
     }
 
     .game-title {
@@ -78,6 +95,15 @@
       color: #aaa;
     }
 
+    .thumbnail-note {
+      width: 100%;
+      max-width: 900px;
+      margin: -1.75rem 0 1.75rem;
+      color: #6f6f6f;
+      font-size: 0.92rem;
+      text-align: center;
+    }
+
     footer {
       margin-top: 4rem;
       color: #444;
@@ -89,20 +115,27 @@
 
   <h1>Game Jam</h1>
   <p class="subtitle">May 14, 2026 &mdash; Play the games we made!</p>
+  <p class="thumbnail-note">Optional screenshots are center-cropped automatically, so any reasonably sized game image will fit the card.</p>
 
   <div class="games">
 
     <a class="game-card" href="bird-game/bird-game.html">
-      <span class="game-title">Bird Game</span>
-      <span class="game-author">by Sierts</span>
-      <span class="play-label">▶ Play</span>
+      <img class="game-thumb" src="bird-game/bird-game.png" alt="Bird Game screenshot" loading="lazy">
+      <span class="game-card-content">
+        <span class="game-title">Bird Game</span>
+        <span class="game-author">by Sierts</span>
+        <span class="play-label">▶ Play</span>
+      </span>
     </a>
 
     <!-- Add more game cards here, e.g.:
-    <a class="game-card" href="friend-game.html">
-      <span class="game-title">Friend's Game</span>
-      <span class="game-author">by Friend</span>
-      <span class="play-label">▶ Play</span>
+    <a class="game-card" href="friend-game/friend-game.html">
+      <img class="game-thumb" src="friend-game/friend-game.png" alt="Friend's Game screenshot" loading="lazy">
+      <span class="game-card-content">
+        <span class="game-title">Friend's Game</span>
+        <span class="game-author">by Friend</span>
+        <span class="play-label">▶ Play</span>
+      </span>
     </a>
     -->
 
