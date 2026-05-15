@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lazy Queen</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage" aria-label="Lazy Queen ant simulation">
+        <div class="stage-frame">
+          <canvas id="game-canvas"></canvas>
+
+          <div class="top-left-controls">
+            <button id="reset-button" type="button">Reset colony</button>
+            <button id="start-over-button" type="button">Start over</button>
+            <button id="editor-button" type="button" aria-pressed="false">Level editor</button>
+          </div>
+
+          <div class="status-overlay">
+            <span id="status">Starting WebGPU...</span>
+            <span class="legend">White food · Pink food trail · Yellow ants · Orange food ants · Red death · Poison green · Green crowd · Trail</span>
+            <label class="time-scale-control">
+              <span>Time scale <span id="time-scale-value">1x</span></span>
+              <input id="target-time-scale" type="range" min="0.25" max="6" step="0.25" value="1" />
+            </label>
+          </div>
+        </div>
+
+        <div class="topics-panel" aria-label="Simulation tuning topics">
+          <div class="render-panel" aria-label="Render layer intensity controls">
+            <div class="render-panel-heading">
+              <strong>Render layers</strong>
+              <button id="default-render-layers-button" class="render-default-button" type="button">Default</button>
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="food">Food</button>
+              <input aria-label="Food intensity" data-render-intensity="food" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="foodTrail">Food trail</button>
+              <input aria-label="Food trail intensity" data-render-intensity="foodTrail" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="death">Death</button>
+              <input aria-label="Death intensity" data-render-intensity="death" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="poison">Poison</button>
+              <input aria-label="Poison intensity" data-render-intensity="poison" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="crowd">Crowd</button>
+              <input aria-label="Crowd intensity" data-render-intensity="crowd" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="trail">Trail</button>
+              <input aria-label="Trail intensity" data-render-intensity="trail" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="antsWithoutFood">Ants without food</button>
+              <input aria-label="Ants without food intensity" data-render-intensity="antsWithoutFood" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+            <div class="render-layer-control">
+              <button class="render-layer-name" type="button" data-render-solo="antsWithFood">Ants with food</button>
+              <input aria-label="Ants with food intensity" data-render-intensity="antsWithFood" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+          </div>
+
+          <div id="tuning-panel" class="tuning-panel">
+            <div class="topic-tabs" role="tablist" aria-label="Simulation tuning topics">
+            <button id="tab-colony" class="topic-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-colony" data-topic-tab="colony">
+              Colony
+            </button>
+            <button id="tab-movement" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-movement" data-topic-tab="movement">
+              Movement
+            </button>
+            <button id="tab-sensors" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-sensors" data-topic-tab="sensors">
+              Sensors
+            </button>
+            <button id="tab-trail" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-trail" data-topic-tab="trail">
+              Trail
+            </button>
+            <button id="tab-food-trail" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-food-trail" data-topic-tab="food-trail">
+              Food trail
+            </button>
+            <button id="tab-crowd" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-crowd" data-topic-tab="crowd">
+              Crowd
+            </button>
+            <button id="tab-death" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-death" data-topic-tab="death">
+              Death
+            </button>
+            <button id="tab-ant-with-food" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-ant-with-food" data-topic-tab="ant-with-food">
+              Ant with food
+            </button>
+            <button id="tab-ant-without-food" class="topic-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-ant-without-food" data-topic-tab="ant-without-food">
+              Ant without food
+            </button>
+            <button id="copy-settings-button" class="topic-tab copy-settings-button" type="button">
+              Copy settings
+            </button>
+            <button id="default-settings-button" class="topic-tab settings-action-button default-settings-button" type="button">
+              Back to default
+            </button>
+          </div>
+
+          <div id="panel-colony" class="topic-panel" role="tabpanel" aria-labelledby="tab-colony" data-topic-panel="colony">
+            <label>
+              <span class="setting-heading">
+                Spawn rate
+                <span class="setting-help" title="How many new ants wake up each second until the colony reaches the ant count." aria-label="How many new ants wake up each second until the colony reaches the ant count.">?</span>
+              </span>
+              <input data-config-key="spawnRate" type="range" min="0" max="2000" step="10" value="220" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Anthill radius
+                <span class="setting-help" title="How far from the anthill center ants can spawn or respawn." aria-label="How far from the anthill center ants can spawn or respawn.">?</span>
+              </span>
+              <input data-config-key="anthillRadius" type="range" min="0" max="160" step="1" value="14" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Spawn angle noise
+                <span class="setting-help" title="Randomness in the initial direction of newly spawned and respawned ants." aria-label="Randomness in the initial direction of newly spawned and respawned ants.">?</span>
+              </span>
+              <input data-config-key="spawnAngleVariation" type="range" min="0" max="6.28" step="0.01" value="0.32" />
+            </label>
+          </div>
+
+          <div id="panel-movement" class="topic-panel" role="tabpanel" aria-labelledby="tab-movement" data-topic-panel="movement" hidden>
+            <label>
+              <span class="setting-heading">
+                Move speed
+                <span class="setting-help" title="How fast each ant moves across the field." aria-label="How fast each ant moves across the field.">?</span>
+              </span>
+              <input data-config-key="moveSpeed" type="range" min="0" max="300" step="1" value="48" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Turn speed
+                <span class="setting-help" title="How sharply ants can turn toward better sensor readings." aria-label="How sharply ants can turn toward better sensor readings.">?</span>
+              </span>
+              <input data-config-key="turnSpeed" type="range" min="0" max="30" step="0.1" value="5.2" />
+            </label>
+          </div>
+
+          <div id="panel-sensors" class="topic-panel" role="tabpanel" aria-labelledby="tab-sensors" data-topic-panel="sensors" hidden>
+            <label>
+              <span class="setting-heading">
+                Sensor distance
+                <span class="setting-help" title="How far ahead ants sample pheromones before choosing a direction." aria-label="How far ahead ants sample pheromones before choosing a direction.">?</span>
+              </span>
+              <input data-config-key="sensorDistance" type="range" min="0" max="80" step="1" value="10" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Sensor angle
+                <span class="setting-help" title="The spread between the left, forward, and right pheromone sensors." aria-label="The spread between the left, forward, and right pheromone sensors.">?</span>
+              </span>
+              <input data-config-key="sensorAngle" type="range" min="0" max="3.14" step="0.01" value="0.58" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Sensor size
+                <span class="setting-help" title="How wide each sensor sample is. Larger values average a wider area around the sensor point." aria-label="How wide each sensor sample is. Larger values average a wider area around the sensor point.">?</span>
+              </span>
+              <input data-config-key="sensorSize" type="range" min="1" max="5" step="2" value="3" />
+            </label>
+          </div>
+
+          <div id="panel-trail" class="topic-panel" role="tabpanel" aria-labelledby="tab-trail" data-topic-panel="trail" hidden>
+            <label>
+              <span class="setting-heading">
+                Trail deposit
+                <span class="setting-help" title="How much trail pheromone an ant leaves while moving." aria-label="How much trail pheromone an ant leaves while moving.">?</span>
+              </span>
+              <input data-config-key="trailDeposit" type="range" min="0" max="1" step="0.01" value="0.2" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Trail attraction
+                <span class="setting-help" title="How strongly ants turn toward trail pheromone." aria-label="How strongly ants turn toward trail pheromone.">?</span>
+              </span>
+              <input data-config-key="trailAttractionStrength" type="range" min="0" max="12" step="0.05" value="0.75" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Trail spread
+                <span class="setting-help" title="How quickly trail pheromone diffuses into nearby pixels." aria-label="How quickly trail pheromone diffuses into nearby pixels.">?</span>
+              </span>
+              <input data-config-key="trailDiffusion" type="range" min="0" max="3" step="0.01" value="0.12" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Trail decay
+                <span class="setting-help" title="How quickly trail pheromone fades over time." aria-label="How quickly trail pheromone fades over time.">?</span>
+              </span>
+              <input data-config-key="trailDecay" type="range" min="0" max="8" step="0.01" value="0.8" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Min trail to follow
+                <span class="setting-help" title="Ants ignore trail pheromone below this amount." aria-label="Ants ignore trail pheromone below this amount.">?</span>
+              </span>
+              <input data-config-key="minTrailFollow" type="range" min="0" max="1" step="0.01" value="0.06" />
+            </label>
+          </div>
+
+          <div id="panel-food-trail" class="topic-panel" role="tabpanel" aria-labelledby="tab-food-trail" data-topic-panel="food-trail" hidden>
+            <label>
+              <span class="setting-heading">
+                Pink trail deposit
+                <span class="setting-help" title="How much pink food trail a food-carrying ant paints each step." aria-label="How much pink food trail a food-carrying ant paints each step.">?</span>
+              </span>
+              <input data-config-key="foodTrailDeposit" type="range" min="0" max="1" step="0.01" value="0.45" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Pink trail decay
+                <span class="setting-help" title="How quickly existing pink food trail fades from the field." aria-label="How quickly existing pink food trail fades from the field.">?</span>
+              </span>
+              <input data-config-key="foodTrailDecay" type="range" min="0" max="8" step="0.01" value="1.05" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Pink trail spread
+                <span class="setting-help" title="How quickly pink food trail diffuses into nearby pixels. This is separate from trail spread." aria-label="How quickly pink food trail diffuses into nearby pixels. This is separate from trail spread.">?</span>
+              </span>
+              <input data-config-key="foodTrailDiffusion" type="range" min="0" max="3" step="0.01" value="0.1" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Clear other trails
+                <span class="setting-help" title="How strongly pink food trail slowly removes nearby green crowd and trail pheromones." aria-label="How strongly pink food trail slowly removes nearby green crowd and trail pheromones.">?</span>
+              </span>
+              <input data-config-key="clearOtherTrails" type="range" min="0" max="1" step="0.01" value="0.05" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Follow pink trail
+                <span class="setting-help" title="How strongly ants without food turn toward pink food trail." aria-label="How strongly ants without food turn toward pink food trail.">?</span>
+              </span>
+              <input data-config-key="foodTrailFollowStrength" type="range" min="0" max="12" step="0.05" value="1.15" />
+            </label>
+          </div>
+
+          <div id="panel-crowd" class="topic-panel" role="tabpanel" aria-labelledby="tab-crowd" data-topic-panel="crowd" hidden>
+            <label>
+              <span class="setting-heading">
+                Crowd strength
+                <span class="setting-help" title="How much green crowd pheromone an ant leaves to mark crowded areas." aria-label="How much green crowd pheromone an ant leaves to mark crowded areas.">?</span>
+              </span>
+              <input data-config-key="crowdDeposit" type="range" min="0" max="1" step="0.01" value="0.16" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Crowd avoidance
+                <span class="setting-help" title="How strongly ants turn away from green crowd pheromone." aria-label="How strongly ants turn away from green crowd pheromone.">?</span>
+              </span>
+              <input data-config-key="crowdAvoidStrength" type="range" min="0" max="12" step="0.05" value="1.2" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Crowd spread
+                <span class="setting-help" title="How quickly green crowd pheromone diffuses into nearby pixels." aria-label="How quickly green crowd pheromone diffuses into nearby pixels.">?</span>
+              </span>
+              <input data-config-key="crowdDiffusion" type="range" min="0" max="3" step="0.01" value="0.12" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Crowd fade
+                <span class="setting-help" title="How quickly green crowd pheromone fades over time." aria-label="How quickly green crowd pheromone fades over time.">?</span>
+              </span>
+              <input data-config-key="crowdDecay" type="range" min="0" max="8" step="0.01" value="0.75" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Min crowd to avoid
+                <span class="setting-help" title="Ants ignore green crowd pheromone below this amount." aria-label="Ants ignore green crowd pheromone below this amount.">?</span>
+              </span>
+              <input data-config-key="minCrowdAvoid" type="range" min="0" max="1" step="0.01" value="0.08" />
+            </label>
+          </div>
+
+          <div id="panel-death" class="topic-panel" role="tabpanel" aria-labelledby="tab-death" data-topic-panel="death" hidden>
+            <label>
+              <span class="setting-heading">
+                Death strength
+                <span class="setting-help" title="How much red death pheromone appears where ants die." aria-label="How much red death pheromone appears where ants die.">?</span>
+              </span>
+              <input data-config-key="deathDeposit" type="range" min="0" max="1" step="0.01" value="1" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Death spread
+                <span class="setting-help" title="How quickly red death pheromone diffuses into nearby pixels." aria-label="How quickly red death pheromone diffuses into nearby pixels.">?</span>
+              </span>
+              <input data-config-key="deathDiffusion" type="range" min="0" max="0.99" step="0.01" value="0.1" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Death fade
+                <span class="setting-help" title="How quickly red death pheromone fades over time." aria-label="How quickly red death pheromone fades over time.">?</span>
+              </span>
+              <input data-config-key="deathDecay" type="range" min="0" max="8" step="0.01" value="0.7" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Death avoidance
+                <span class="setting-help" title="How strongly ants steer away from red death pheromone." aria-label="How strongly ants steer away from red death pheromone.">?</span>
+              </span>
+              <input data-config-key="deathAvoidStrength" type="range" min="0" max="16" step="0.1" value="3" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Min death to avoid
+                <span class="setting-help" title="Ants ignore red death pheromone below this amount." aria-label="Ants ignore red death pheromone below this amount.">?</span>
+              </span>
+              <input data-config-key="minDeathAvoid" type="range" min="0" max="1" step="0.01" value="0" />
+            </label>
+          </div>
+
+          <div id="panel-ant-with-food" class="topic-panel" role="tabpanel" aria-labelledby="tab-ant-with-food" data-topic-panel="ant-with-food" hidden>
+            <label>
+              <span class="setting-heading">
+                Home pull
+                <span class="setting-help" title="How strongly ants carrying food steer back toward the anthill." aria-label="How strongly ants carrying food steer back toward the anthill.">?</span>
+              </span>
+              <input data-config-key="homePullStrength" type="range" min="0" max="12" step="0.05" value="2.8" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Carry full deposit time
+                <span class="setting-help" title="How many seconds a food-carrying ant keeps depositing pink trail at full strength after finding food." aria-label="How many seconds a food-carrying ant keeps depositing pink trail at full strength after finding food.">?</span>
+              </span>
+              <input data-config-key="foodTrailCarryFullStrengthTime" type="range" min="0" max="30" step="0.1" value="1.8" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Carry deposit falloff
+                <span class="setting-help" title="How quickly a food-carrying ant reduces its pink trail deposits after the full-strength time. This does not control existing trail decay." aria-label="How quickly a food-carrying ant reduces its pink trail deposits after the full-strength time. This does not control existing trail decay.">?</span>
+              </span>
+              <input data-config-key="foodTrailCarryFalloff" type="range" min="0" max="8" step="0.01" value="0.9" />
+            </label>
+            <label>
+              <span class="setting-heading">
+                Minimum carry deposit
+                <span class="setting-help" title="The minimum fraction of pink trail a food-carrying ant keeps depositing while carrying food." aria-label="The minimum fraction of pink trail a food-carrying ant keeps depositing while carrying food.">?</span>
+              </span>
+              <input data-config-key="foodTrailMinCarryDepositRatio" type="range" min="0" max="1" step="0.01" value="0.05" />
+            </label>
+          </div>
+
+            <div id="panel-ant-without-food" class="topic-panel" role="tabpanel" aria-labelledby="tab-ant-without-food" data-topic-panel="ant-without-food" hidden>
+            <label>
+              <span class="setting-heading">
+                Food pickup sensitivity
+                <span class="setting-help" title="How much painted food an ant must touch before it starts carrying food." aria-label="How much painted food an ant must touch before it starts carrying food.">?</span>
+              </span>
+              <input data-config-key="foodPickupThreshold" type="range" min="0.01" max="1" step="0.01" value="0.12" />
+            </label>
+            </div>
+          </div>
+
+          <div id="editor-panel" class="editor-panel" hidden>
+            <strong>Level editor paused</strong>
+            <div class="paint-tools" role="group" aria-label="Paint type">
+              <button class="paint-tool" type="button" data-paint-target="poison" aria-pressed="true">Poison</button>
+              <button class="paint-tool" type="button" data-paint-target="food" aria-pressed="false">Food</button>
+            </div>
+            <label>
+              Brush
+              <input id="brush-size" type="range" min="4" max="72" value="22" />
+            </label>
+            <button id="clear-spray-button" type="button">Clear poison</button>
+            <button id="clear-food-button" type="button">Clear food</button>
+            <button id="download-map-button" type="button">Download map</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
